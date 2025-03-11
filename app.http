@@ -1,0 +1,13 @@
+
+POST http://localhost:3001/register 
+Content-Type:'application/json'
+
+{
+    "username":"Lakshmankumar",
+    "firstname":"Lakshmankumar",
+    "lastname":"Sanaboyina",
+    "email":"Lakshmankumarsanaboyina123@gmail.com",
+    "password":"Lakshmankumar"
+}
+
+####

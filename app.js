@@ -1,5 +1,7 @@
 const express = require("express");
-const mysql = require("mysql2/promise");
+const { open } = require("sqlite");
+const path = require("path");
+const sqlite3 = require("sqlite3");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
@@ -8,6 +10,8 @@ require("dotenv").config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+/*
 
 // MySQL connection pool
 const pool = mysql.createPool({
@@ -37,14 +41,37 @@ const initializeDBAndServer = async () => {
   }
 };
 
+*/
+let db;
+
+const initializeDBAndServer = async () => {
+  try {
+    db = await open({
+      filename: path.join(__dirname, "bookstore.db"),
+      driver: sqlite3.Database,
+    });
+    app.listen(3001, () => {
+      console.log("server is running at http://localhost:3001/");
+    });
+  } catch (error) {
+    console.log(`Data base Error is ${error.message}`);
+    process.exit(1);
+  }
+};
 initializeDBAndServer();
+
+app.get("/", async (req, res) => {
+  const getuserDetails = `SELECT * FROM register`;
+  const userDetails = await db.all(getuserDetails);
+  res.send(userDetails);
+});
 
 // login page detail checking
 app.post("/login", async (req, res) => {
   const { username, password } = req.body;
-  const getUserQuery = `SELECT * FROM registration WHERE username = ?`;
-  const [user] = await pool.query(getUserQuery, [username]);
-  if (user.length === 0) {
+  const getUserQuery = `SELECT * FROM register WHERE username = '${username}'`;
+  const user = await db.get(getUserQuery);
+  if (user === undefined) {
     return res.status(404).json({ success: false, error: "User not found" });
   } else {
     const hashedPassword = user[0].password;
@@ -69,10 +96,10 @@ app.post("/login", async (req, res) => {
 app.post("/register/", async (request, response) => {
   const { firstname, lastname, email, password, username } = request.body;
 
-  const userExistsQuery = `SELECT * FROM registration WHERE username = ?`;
-  const [user] = await pool.query(userExistsQuery, [username]);
+  const userExistsQuery = `SELECT * FROM register WHERE username = '${username}'`;
+  const user = await db.get(userExistsQuery);
 
-  if (user.length > 0) {
+  if (user !== undefined) {
     return response
       .status(409)
       .json({ success: false, error: "User already exists" });
@@ -80,14 +107,8 @@ app.post("/register/", async (request, response) => {
 
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
-    const insertUserQuery = `INSERT INTO registration(username,firstname,lastname,email,password) VALUES(?, ?, ?, ?, ?)`;
-    await pool.query(insertUserQuery, [
-      username,
-      firstname,
-      lastname,
-      email,
-      hashedPassword,
-    ]);
+    const insertUserQuery = `INSERT INTO register(username,firstname,lastname,email,password) VALUES('${username}','${firstname}','${lastname}','${email}','${hashedPassword}')`;
+    await db.run(insertUserQuery);
 
     response
       .status(201)
