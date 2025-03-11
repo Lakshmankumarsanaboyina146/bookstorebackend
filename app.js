@@ -5,43 +5,11 @@ const sqlite3 = require("sqlite3");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
-require("dotenv").config();
 
 const app = express();
-app.use(cors());
 app.use(express.json());
+app.use(cors());
 
-/*
-
-// MySQL connection pool
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
-
-// Initialize server and database connection
-const initializeDBAndServer = async () => {
-  try {
-    const connection = await pool.getConnection();
-    console.log("Connected to MySQL database!");
-    connection.release();
-
-    const PORT = 3001;
-    app.listen(PORT, () => {
-      console.log(`Server Running at http://localhost:${PORT}/`);
-    });
-  } catch (error) {
-    console.error(`DB Error: ${error.message}`);
-    process.exit(1);
-  }
-};
-
-*/
 let db;
 
 const initializeDBAndServer = async () => {
@@ -71,10 +39,11 @@ app.post("/login", async (req, res) => {
   const { username, password } = req.body;
   const getUserQuery = `SELECT * FROM register WHERE username = '${username}'`;
   const user = await db.get(getUserQuery);
+  console.log(user);
   if (user === undefined) {
     return res.status(404).json({ success: false, error: "User not found" });
   } else {
-    const hashedPassword = user[0].password;
+    const hashedPassword = user.password;
     const isPasswordCorrect = await bcrypt.compare(password, hashedPassword);
     if (isPasswordCorrect === true) {
       const userpayLoad = {
